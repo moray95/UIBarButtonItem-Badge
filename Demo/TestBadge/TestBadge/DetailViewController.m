@@ -8,9 +8,11 @@
 
 #import "DetailViewController.h"
 #import "UIButton+Badge.h"
+#import "UIBarButtonItem+Badge.h"
 
 @interface DetailViewController ()
 - (void)configureView;
+@property (weak, nonatomic) IBOutlet UIBarButtonItem *barButtonItem;
 @property (weak, nonatomic) IBOutlet UIButton *button;
 @end
 
@@ -42,9 +44,7 @@
     [super viewDidLoad];
 	// Do any additional setup after loading the view, typically from a nib.
     [self configureView];
-    
-    self.button.badgeValue = @"1";
-    self.button.badgeBGColor = [UIColor orangeColor];
+    self.barButtonItem.badgeValue = @"1";
 }
 
 - (void)didReceiveMemoryWarning

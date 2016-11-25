@@ -20,6 +20,7 @@ NSString const *UIBarButtonItem_badgeOriginYKey = @"UIBarButtonItem_badgeOriginY
 NSString const *UIBarButtonItem_shouldHideBadgeAtZeroKey = @"UIBarButtonItem_shouldHideBadgeAtZeroKey";
 NSString const *UIBarButtonItem_shouldAnimateBadgeKey = @"UIBarButtonItem_shouldAnimateBadgeKey";
 NSString const *UIBarButtonItem_badgeValueKey = @"UIBarButtonItem_badgeValueKey";
+NSString const *UIBarButtonItem_observingViewChangeKey = @"UIBarButtonItem_observingViewChangeKey";
 
 @implementation UIBarButtonItem (Badge)
 
@@ -27,31 +28,64 @@ NSString const *UIBarButtonItem_badgeValueKey = @"UIBarButtonItem_badgeValueKey"
 @dynamic badgePadding, badgeMinSize, badgeOriginX, badgeOriginY;
 @dynamic shouldHideBadgeAtZero, shouldAnimateBadge;
 
+- (BOOL)observingViewChange
+{
+  return [objc_getAssociatedObject(self, &UIBarButtonItem_observingViewChangeKey) boolValue];
+}
+
+- (void)setObservingViewChange:(BOOL)value
+{
+  objc_setAssociatedObject(self, &UIBarButtonItem_observingViewChangeKey, @(value), OBJC_ASSOCIATION_RETAIN);
+}
+
 - (void)badgeInit
 {
-    UIView *superview = nil;
-    CGFloat defaultOriginX = 0;
-    if (self.customView) {
-        superview = self.customView;
-        defaultOriginX = superview.frame.size.width - self.badge.frame.size.width/2;
-        // Avoids badge to be clipped when animating its scale
-        superview.clipsToBounds = NO;
-    } else if ([self respondsToSelector:@selector(view)] && [(id)self view]) {
-        superview = [(id)self view];
-        defaultOriginX = superview.frame.size.width - self.badge.frame.size.width;
-    }
-    [superview addSubview:self.badge];
-    
-    // Default design initialization
-    self.badgeBGColor   = [UIColor redColor];
-    self.badgeTextColor = [UIColor whiteColor];
-    self.badgeFont      = [UIFont systemFontOfSize:12.0];
-    self.badgePadding   = 6;
-    self.badgeMinSize   = 8;
-    self.badgeOriginX   = defaultOriginX;
-    self.badgeOriginY   = -4;
-    self.shouldHideBadgeAtZero = YES;
-    self.shouldAnimateBadge = YES;
+  [self badgeSetup];
+  if (![self observingViewChange])
+  {
+    [self addObserver:self forKeyPath:@"view" options:NSKeyValueObservingOptionNew context:nil];
+    [self setObservingViewChange:YES];
+  }
+}
+
+- (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary<NSKeyValueChangeKey,id> *)change context:(void *)context
+{
+  [self badgeSetup];
+}
+
+- (void)badgeSetup
+{
+  UIView *superview = nil;
+  CGFloat defaultOriginX = 0;
+  if (self.customView) {
+    superview = self.customView;
+    defaultOriginX = superview.frame.size.width - self.badge.frame.size.width/2;
+    // Avoids badge to be clipped when animating its scale
+    superview.clipsToBounds = NO;
+  } else if ([self respondsToSelector:@selector(view)] && [(id)self view]) {
+    superview = [(id)self view];
+    defaultOriginX = superview.frame.size.width - self.badge.frame.size.width;
+  }
+  [superview addSubview:self.badge];
+
+  // Default design initialization
+  self.badgeBGColor   = [UIColor redColor];
+  self.badgeTextColor = [UIColor whiteColor];
+  self.badgeFont      = [UIFont systemFontOfSize:12.0];
+  self.badgePadding   = 6;
+  self.badgeMinSize   = 8;
+  self.badgeOriginX   = defaultOriginX;
+  self.badgeOriginY   = -4;
+  self.shouldHideBadgeAtZero = YES;
+  self.shouldAnimateBadge = YES;
+}
+
+- (void)dealloc
+{
+  if ([self observingViewChange])
+  {
+    [self removeObserver:self forKeyPath:@"view"];
+  }
 }
 
 #pragma mark - Utility methods
